@@ -1,6 +1,6 @@
 # Signs the running Studio in as the agent account: reads Studio's quick sign-in code from its log
 # and approves it with the agent's session (Roblox's own "Quick sign in" flow). Nothing secret is printed.
-param([string]$Cookie, [string]$Exe = $env:STUDIO_EXE, [int]$Attempts = 6)
+param([string]$Cookie, [string]$Exe = $env:STUDIO_EXE, [int]$Attempts = 1)
 $logs = "$env:LOCALAPPDATA\Roblox\logs"; $code = $null
 for ($a = 1; $a -le $Attempts -and -not $code; $a++) {
   Get-Process RobloxStudioBeta -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep 2
