@@ -1,6 +1,6 @@
 # Signs the running Studio in as the agent account: reads Studio's quick sign-in code from its log
 # and approves it with the agent's session (Roblox's own "Quick sign in" flow). Nothing secret is printed.
-param([string]$Cookie, [string]$Exe = $env:STUDIO_EXE, [int]$Attempts = 8)
+param([string]$Cookie, [string]$Exe = $env:STUDIO_EXE, [int]$Attempts = 6)
 $logs = "$env:LOCALAPPDATA\Roblox\logs"; $code = $null
 for ($a = 1; $a -le $Attempts -and -not $code; $a++) {
   Get-Process RobloxStudioBeta -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep 2
@@ -8,6 +8,7 @@ for ($a = 1; $a -le $Attempts -and -not $code; $a++) {
     Remove-Item "$env:LOCALAPPDATA\Roblox\LocalStorage" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item 'HKCU:\Software\Roblox\RobloxStudioBrowser' -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item 'HKCU:\Software\ROBLOX Corporation' -Recurse -Force -ErrorAction SilentlyContinue
+    Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Cryptography' -Name MachineGuid -Value ([guid]::NewGuid().ToString())
   }
   Remove-Item "$logs\*Studio*" -Force -ErrorAction SilentlyContinue
   Start-Process $Exe
@@ -19,7 +20,7 @@ for ($a = 1; $a -le $Attempts -and -not $code; $a++) {
       if ($m) { $code = $m.Matches[0].Groups[1].Value; break }
     }
   }
-  $t = Get-ChildItem $logs -Filter '*Studio*' -File -ErrorAction SilentlyContinue | ForEach-Object { Select-String -Path $_.FullName -Pattern 'rolloutPercent=\d+, inTreatment=\w+' -ErrorAction SilentlyContinue | Select-Object -First 1 }
+  $t = Get-ChildItem $logs -Filter '*Studio*' -File -ErrorAction SilentlyContinue | ForEach-Object { Select-String -Path $_.FullName -Pattern 'hashValue=\d+, bucket=\d+, rolloutPercent=\d+, inTreatment=\w+' -ErrorAction SilentlyContinue | Select-Object -First 1 }
   "attempt $a : $(if ($code) { 'sign-in code found' } else { 'no code' }) $(if ($t) { $t.Matches[0].Value })"
 }
 if (-not $code) { throw 'no sign-in code after all attempts' }
