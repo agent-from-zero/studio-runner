@@ -1,0 +1,23 @@
+version: '{build}'
+image: Visual Studio 2022
+build: off
+test_script:
+  - ps: |
+      $ProgressPreference = 'SilentlyContinue'
+      $ver = (Invoke-RestMethod https://clientsettingscdn.roblox.com/v2/client-version/WindowsStudio64).clientVersionUpload
+      "studio version $ver"
+      Invoke-WebRequest "https://setup.rbxcdn.com/$ver-RobloxStudioInstaller.exe" -OutFile inst.exe
+      Start-Process .\inst.exe
+      $t0 = Get-Date
+      while (((Get-Date) - $t0).TotalMinutes -lt 8 -and -not (Get-Process RobloxStudioBeta -ErrorAction SilentlyContinue)) { Start-Sleep 3 }
+      "studio running after $([int]((Get-Date) - $t0).TotalSeconds)s"
+      Start-Sleep 45
+      Get-Process | Where-Object { $_.Name -like '*Roblox*' } | Format-Table Name,Id,@{n='MB';e={[int]($_.WS/1MB)}}
+      Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+      $b = [System.Windows.Forms.SystemInformation]::VirtualScreen
+      $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+      [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Left,$b.Top,0,0,$bmp.Size)
+      $bmp.Save("$pwd\shot.png")
+      "screen $($b.Width)x$($b.Height)"
+      Push-AppveyorArtifact shot.png
+      Get-Process RobloxStudioBeta -ErrorAction SilentlyContinue | Stop-Process -Force
