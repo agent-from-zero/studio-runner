@@ -35,17 +35,18 @@ jobs:
           $body = @{ ref = 'main'; inputs = @{ minutes = '${{ inputs.minutes }}'; attempt = "$next" } } | ConvertTo-Json
           Invoke-RestMethod "https://api.github.com/repos/$env:GITHUB_REPOSITORY/actions/workflows/desktop.yml/dispatches" -Method Post -Headers @{ Authorization = "Bearer $env:GH_TOKEN" } -Body $body
           "started machine attempt $next"
-      - name: Publish the viewer link (encrypted)
+      - name: Serve the desktop (viewer link posted encrypted) and stay up
         if: steps.signin.outcome == 'success'
         shell: pwsh
         env: { GH_TOKEN: '${{ github.token }}' }
-        run: ./scripts/publish-session.ps1 -ViewKey "${{ secrets.VIEW_KEY }}"
-      - name: Stay up
-        if: steps.signin.outcome == 'success'
-        shell: pwsh
         run: |
+          ./scripts/serve-desktop.ps1
+          ./scripts/publish-session.ps1 -ViewKey "${{ secrets.VIEW_KEY }}"
           $end = (Get-Date).AddMinutes([int]'${{ inputs.minutes }}')
-          while ((Get-Date) -lt $end) { Start-Sleep 60 }
+          while ((Get-Date) -lt $end) {
+            Start-Sleep 30
+            if (-not (Get-Process cloudflared -ErrorAction SilentlyContinue)) { 'tunnel process ended'; break }
+          }
       - name: Remove the link
         if: always()
         shell: pwsh
