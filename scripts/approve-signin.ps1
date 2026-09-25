@@ -19,7 +19,7 @@ for ($a = 1; $a -le $Attempts -and -not $code; $a++) {
       if ($m) { $code = $m.Matches[0].Groups[1].Value; break }
     }
   }
-  $t = Get-ChildItem $logs -Filter '*Studio*' -File -ErrorAction SilentlyContinue | ForEach-Object { Select-String -Path $_.FullName -Pattern 'inTreatment=\w+' -ErrorAction SilentlyContinue | Select-Object -First 1 }
+  $t = Get-ChildItem $logs -Filter '*Studio*' -File -ErrorAction SilentlyContinue | ForEach-Object { Select-String -Path $_.FullName -Pattern 'rolloutPercent=\d+, inTreatment=\w+' -ErrorAction SilentlyContinue | Select-Object -First 1 }
   "attempt $a : $(if ($code) { 'sign-in code found' } else { 'no code' }) $(if ($t) { $t.Matches[0].Value })"
 }
 if (-not $code) { throw 'no sign-in code after all attempts' }

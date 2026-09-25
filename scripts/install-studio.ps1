@@ -10,3 +10,6 @@ Get-Process RobloxStudioBeta, RobloxStudioInstaller -ErrorAction SilentlyContinu
 $exe = Get-ChildItem 'C:\Program Files\Roblox\Versions' -Recurse -Filter RobloxStudioBeta.exe | Select-Object -First 1
 "STUDIO_EXE=$($exe.FullName)" | Out-File -Append $env:GITHUB_ENV
 "installed $ver in $([int]((Get-Date) - $t0).TotalSeconds)s"
+# Always show the sign-in page that offers a quick sign-in code (Studio rolls it out to 50% of machines).
+$cs = Join-Path $exe.DirectoryName 'ClientSettings'; New-Item -ItemType Directory -Force $cs | Out-Null
+'{"FIntLoginPageRolloutPercent":100,"DFIntLoginPageRolloutPercent":100}' | Set-Content (Join-Path $cs 'ClientAppSettings.json') -Encoding ascii
