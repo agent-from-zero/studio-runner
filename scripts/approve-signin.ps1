@@ -3,9 +3,15 @@
 param([string]$Cookie, [int]$TimeoutSec = 180)
 $t0 = Get-Date; $code = $null
 while (-not $code -and ((Get-Date) - $t0).TotalSeconds -lt $TimeoutSec) {
-  $log = Get-ChildItem "$env:LOCALAPPDATA\Roblox\logs" -Filter '*Studio*' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime | Select-Object -Last 1
-  if ($log) { $m = Select-String -Path $log.FullName -Pattern '"code":"([A-Z0-9]{6})"' | Select-Object -Last 1; if ($m) { $code = $m.Matches[0].Groups[1].Value } }
+  foreach ($f in (Get-ChildItem "$env:LOCALAPPDATA\Roblox\logs" -File -ErrorAction SilentlyContinue)) {
+    $m = Select-String -Path $f.FullName -Pattern '"code":"([A-Z0-9]{6})"' -ErrorAction SilentlyContinue | Select-Object -Last 1
+    if ($m) { $code = $m.Matches[0].Groups[1].Value; break }
+  }
   if (-not $code) { Start-Sleep 2 }
+}
+if (-not $code) {
+  Get-ChildItem "$env:LOCALAPPDATA\Roblox\logs" -File | ForEach-Object { "log: $($_.Name) $($_.Length)" }
+  Get-ChildItem "$env:LOCALAPPDATA\Roblox\logs" -File | ForEach-Object { Select-String -Path $_.FullName -Pattern 'QuickSignIn|LoginPage|Authenticated|LoginController' | Select-Object -Last 8 | ForEach-Object { ($_.Line -replace '"code":"[A-Z0-9]+"','[code]' -replace 'privateKey":"[^"]+','[pk]').Substring(0, [Math]::Min(220, $_.Line.Length)) } }
 }
 if (-not $code) { throw 'no sign-in code appeared in the Studio log' }
 $ws = New-Object Microsoft.PowerShell.Commands.WebRequestSession
