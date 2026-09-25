@@ -9,17 +9,16 @@ jobs:
       - name: Install Studio
         shell: pwsh
         run: ./scripts/install-studio.ps1
-      - name: Sign in as the agent account
-        shell: pwsh
-        run: ./scripts/login-studio.ps1 -Cookie "${{ secrets.RBX_COOKIE }}" -UserId "${{ secrets.RBX_USERID }}"
-      - name: Launch Studio and capture
+      - name: Launch Studio and sign in as the agent account
         shell: pwsh
         run: |
+          Remove-Item "$env:LOCALAPPDATA\Roblox\logs\*Studio*" -ErrorAction SilentlyContinue
           Start-Process $env:STUDIO_EXE
-          Start-Sleep 75
+          ./scripts/approve-signin.ps1 -Cookie "${{ secrets.RBX_COOKIE }}"
+          Start-Sleep 20
           ./scripts/screenshot.ps1 -Out shot.png
           Get-Process RobloxStudioBeta -ErrorAction SilentlyContinue | Format-Table Id, @{n='MB';e={[int]($_.WS/1MB)}}
           $log = Get-ChildItem "$env:LOCALAPPDATA\Roblox\logs" -Filter '*Studio*' | Sort-Object LastWriteTime | Select-Object -Last 1
-          if ($log) { Select-String -Path $log.FullName -Pattern 'login|Login|auth|Auth|userId|UserId' | Select-Object -Last 15 | ForEach-Object { $_.Line -replace '_\|WARNING[^ ]*','[cookie]' } }
+          if ($log) { Select-String -Path $log.FullName -Pattern 'Authenticated|LoginController|StudioKeyEvents] login' | Select-Object -Last 15 | ForEach-Object { $_.Line -replace '"code":"[A-Z0-9]+"','"code":"[hidden]"' -replace 'privateKey":"[^"]+','privateKey":"[hidden]' } }
       - uses: actions/upload-artifact@v4
         with: { name: login, path: shot.png }
