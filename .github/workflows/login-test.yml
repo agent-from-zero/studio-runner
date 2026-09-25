@@ -12,8 +12,6 @@ jobs:
       - name: Launch Studio and sign in as the agent account
         shell: pwsh
         run: |
-          Remove-Item "$env:LOCALAPPDATA\Roblox\logs\*Studio*" -ErrorAction SilentlyContinue
-          Start-Process $env:STUDIO_EXE
           ./scripts/approve-signin.ps1 -Cookie "${{ secrets.RBX_COOKIE }}"
           Start-Sleep 20
           ./scripts/screenshot.ps1 -Out shot.png
