@@ -1,0 +1,42 @@
+name: desktop
+on:
+  workflow_dispatch:
+    inputs:
+      minutes: { description: 'How long to keep the machine (max 350)', default: '120' }
+permissions:
+  contents: read
+  issues: write
+jobs:
+  desktop:
+    runs-on: windows-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Studio
+        shell: pwsh
+        run: ./scripts/install-studio.ps1
+      - name: Remote desktop
+        shell: pwsh
+        run: ./scripts/start-desktop.ps1
+      - name: Launch Studio signed in as the agent account
+        shell: pwsh
+        run: |
+          Remove-Item "$env:LOCALAPPDATA\Roblox\logs\*Studio*" -ErrorAction SilentlyContinue
+          Start-Process $env:STUDIO_EXE
+          ./scripts/approve-signin.ps1 -Cookie "${{ secrets.RBX_COOKIE }}"
+      - name: Publish the viewer link (encrypted)
+        shell: pwsh
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: ./scripts/publish-session.ps1 -ViewKey "${{ secrets.VIEW_KEY }}"
+      - name: Stay up
+        shell: pwsh
+        run: |
+          $end = (Get-Date).AddMinutes([int]'${{ inputs.minutes }}')
+          while ((Get-Date) -lt $end) { Start-Sleep 60 }
+      - name: Remove the link
+        if: always()
+        shell: pwsh
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          $c = Get-Content "$env:RUNNER_TEMP\comment.txt" -ErrorAction SilentlyContinue
+          if ($c) { Invoke-RestMethod "https://api.github.com/repos/$env:GITHUB_REPOSITORY/issues/comments/$c" -Method Delete -Headers @{ Authorization = "Bearer $env:GH_TOKEN" } }
